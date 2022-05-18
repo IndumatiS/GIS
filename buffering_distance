@@ -1,0 +1,111 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Apr 29 11:23:38 2022
+
+@author: shain421
+"""
+
+#Class points
+import pandas as pd
+import os
+import csv
+from math import radians, cos, sin, sqrt
+from decimal import *
+import numpy as np
+from numpy import genfromtxt
+import arcpy
+from Buffering_360points  import *
+
+   
+    
+try:
+    #set parameters from user input
+    distance = float(arcpy.GetParameterAsText(0))
+    input_file = arcpy.GetParameterAsText(1)
+    output_file = arcpy.GetParameterAsText(0)
+
+    
+    #Define the variables and calcuate buffer distance
+    df = pd.read_csv(input_file,  header=0) 
+    df_buffer = []
+    counter = 0
+    pointID = 0
+    long1 = 0
+    lat1 = 0
+    
+    arcpy.AddMessage  ("Calculating buffer distance")
+    
+    for i in range(0,len(df)):
+        for j in range(0,len(df.columns)):
+            #define which column is longitude and latitude
+            if(j==0):
+                pointID = df.iloc[i,j]
+            elif(j==1): #if it is longitute
+                long1 = df.iloc[i,j]
+            elif(j==2):
+                lat1 = df.iloc[i,j]
+        for bearings in range(1, 360):
+            lat_long_tuple=anti_haversine(lat1,long1,bearings,distance)
+            array = []
+            array.append(pointID)
+            array.append(lat_long_tuple[0])
+            array.append(lat_long_tuple[1])
+            array.append(bearings)
+            df_buffer.append( array)   
+            
+    arcpy.AddMessage  ("Finished calculating buffer distance")
+    
+    #Convert it into a .csv 
+    arcpy.AddMessage  ("Converting into .csv file")
+    with open("new_buffer.csv",'w', encoding='UTF8', newline='') as my_csv:
+        new_buffer_csv = csv.writer(my_csv,delimiter=',')
+        new_buffer_csv.writerows(df_buffer)
+        
+    
+    #Then convert it to kml file
+    arcpy.AddMessage  ("Converting into .kml file")
+    kmlForLab2Buffering(1,2,0,"new_buffer")
+    
+    #Then covert it to an arcgis layer
+    #Allow overwriting
+    arcpy.AddMessage  ("Converting into ArcGIS layer")
+    arcpy.env.overwriteOutput = True
+    arcpy.conversion.KMLToLayer(r'U:\SURV319_Lab2\\Buffered_kml.kml',
+                                           r'output_file', 'lab2Layer' )
+    #Finish program
+    arcpy.AddMessage  ("Finished")
+
+
+except arcpy.ExecuteError: 
+    # Get the tool error messages 
+    # 
+    msgs = arcpy.GetMessages(2) 
+
+    # Return tool error messages for use with a script tool 
+    #
+    arcpy.AddError(msgs) 
+
+    # Print tool error messages for use in Python/PythonWin 
+    # 
+    print (msgs)
+
+except:
+    # Get the traceback object
+    #
+    tb = sys.exc_info()[2]
+    tbinfo = traceback.format_tb(tb)[0]
+
+    # Concatenate information together concerning the error into a message string
+    #
+    pymsg = "PYTHON ERRORS:\nTraceback info:\n" + tbinfo + "\nError Info:\n" + str(sys.exc_info()[1])
+    msgs = "ArcPy ERRORS:\n" + arcpy.GetMessages(2) + "\n"
+
+    # Return python error messages for use in script tool or Python Window
+    #
+    arcpy.AddError(pymsg)
+    arcpy.AddError(msgs)
+ 
+    
+
+
+        
