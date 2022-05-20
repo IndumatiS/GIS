@@ -40,9 +40,9 @@ unit_pytho<-function(x,centroid_list_arg){
 
 #call the first vector of the matrix to calculate euclidean distance then try it out the remaining using sapply
 #cluster<-unit_pytho(M[1,],centroid_list)
-cluster_vector<-apply(M, 1,FUN = unit_pytho,centroid_list )
+cluster_vector<-apply(M, 1,FUN = unit_pytho,centroid_list)
 M_withClustercol<-as.data.frame(cbind(M,cluster_vector))
 M_withClustercol$cluster_vector<-as.factor(M_withClustercol$cluster_vector)
-M_withClustercol<-M_withClustercol %>% group_by(cluster_vector) %>% summarise(across(everything(), mean))
-centroid_list<-split(M_withClustercol,seq(nrow(M_withClustercol)))  
+M_withClustercol<-as.data.frame(M_withClustercol %>% group_by(cluster_vector) %>% summarise(across(everything(), mean)))
+centroid_list<-split(M_withClustercol[,-1],seq(nrow(M_withClustercol)))  
 
