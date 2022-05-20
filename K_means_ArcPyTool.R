@@ -2,7 +2,7 @@
 #Inputs
 #matrix = input1
 #kclusters = input 2
-
+library(dplyr)
 
 #For the purpose of constructing this loop create dummy matrix
 #which has two distict population of numbers
@@ -41,27 +41,8 @@ unit_pytho<-function(x,centroid_list_arg){
 #call the first vector of the matrix to calculate euclidean distance then try it out the remaining using sapply
 #cluster<-unit_pytho(M[1,],centroid_list)
 cluster_vector<-apply(M, 1,FUN = unit_pytho,centroid_list )
+M_withClustercol<-as.data.frame(cbind(M,cluster_vector))
+M_withClustercol$cluster_vector<-as.factor(M_withClustercol$cluster_vector)
+M_withClustercol<-M_withClustercol %>% group_by(cluster_vector) %>% summarise(across(everything(), mean))
+centroid_list<-split(M_withClustercol,seq(nrow(M_withClustercol)))  
 
-kmeans_lab3<-fuction(matrix, kclusters){
-  kclusters
-  ncols<-ncol(matrix)
-  nrows<-nrows(matrix)
-  kcluster_distance<-list()
-  for (i in nrows){
-    matrix[i]
-  }
-  kcluster_distance[i]<-vector-centroid[1]
-  
-  for(i in 1:nrows){
-    kcluster_distance[i]<-vector-centroid[1]
-    kcluster_distance[i]<-vector-centroid[2]
-    cluster_col<-which(vector==min(vector))[1]
-    
-    return(cluster_vector)
-  }
-}
-
-
-#make the dataframe
-
-#in that distance row which is the minimum? assign it to that cluster
