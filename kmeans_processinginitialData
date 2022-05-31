@@ -1,0 +1,170 @@
+library(dplyr)
+
+world_crop_yeilds<-world_crop_yeilds %>% filter(Year==2018)
+
+kmeans_df_staple<-world_crop_yeilds %>% select(maize_attainable,rice_attainable, sorghum_attainable, wheat_attainable)
+kmeans_df_oil<-world_crop_yeilds %>% select(groundnut_attainable,oilpalm_attainable, rapeseed_attainable, sunflower_attainable)
+
+kmeans_df_staple<-scale(kmeans_df_staple)
+kmeans_df_oil<-scale(kmeans_df_oil)
+
+
+names(world_crop_yeilds)[1] <- "name"
+
+world_crop_yeilds_latlong<-merge(x = world_crop_yeilds, y = World_country_lat_long, by="name") # Equivalent
+
+
+thismap1<-thismap[NULL,]
+x<-c()
+for(i in unique(thismap$region)){
+  temp1=thismap %>% filter(region==i)
+  temp2=world_crop_yeilds_latlong %>% filter(name==i)
+  print(i)
+  if(nrow(temp2)>0){
+    temp1$cluster<-temp2$kmeansStaple
+    thismap1<-rbind(thismap1,temp1)
+  }
+  else{
+    x<-append(x,i)
+    next
+    
+  }
+ print(i)
+}
+
+#plot world map
+world <- map_data("world")
+ggplot(thismap1, aes( x = long, y = lat, group=cluster )) +
+  geom_polygon(aes(fill = cluster))
+
+
+####Plot works
+library(RColorBrewer)
+library(maptools)
+library(ggplot2)
+library(rworldmap)
+
+map.world = map_data(map='world')
+#replace country names to match map.world so that they appear on the map
+world_crop_yeilds_latlong$name<-replace(world_crop_yeilds_latlong$name,which(world_crop_yeilds_latlong$name=="United States"),"USA")
+world_crop_yeilds_latlong$name<-replace(world_crop_yeilds_latlong$name,which(world_crop_yeilds_latlong$name=="United Kingdom") ,"UK")
+
+#change the colname of world_crop_yeilds_latlong from name to region 
+colnames(world_crop_yeilds_latlong)[2] <- 'region'
+
+map.world = merge(world_crop_yeilds_latlong,map.world, by='region',all.y=TRUE)
+map.world = map.world[order(map.world$order), ] # <---
+
+plot1<-ggplot() + 
+  geom_map(data = map.world,map = map.world, aes(
+    map_id = region,
+    x=long,
+    y=lat,
+    fill=as.factor(kmeans3clustersOil)
+  )) +
+  coord_quickmap()
+
+plot1
+
+filtered_df1<-(map.world %>% 
+  select(rice_attainable,wheat_attainable, maize_attainable, millet_attainable,sorghum_attainable, kmeans3clustersStaple) %>% 
+  filter(kmeans3clustersStaple == 1))
+
+filtered_df2<-(map.world %>% 
+                 select(rice_attainable,wheat_attainable, maize_attainable, millet_attainable,sorghum_attainable, kmeans3clustersStaple) %>% 
+                 filter(kmeans3clustersStaple == 2))
+filtered_df3<-(map.world %>% 
+                 select(rice_attainable,wheat_attainable, maize_attainable, millet_attainable,sorghum_attainable, kmeans3clustersStaple) %>% 
+                 filter(kmeans3clustersStaple == 3))
+
+boxplot(filtered_df1$rice_attainable,
+        filtered_df1$wheat_attainable,
+        filtered_df1$maize_attainable,
+        filtered_df1$sorghum_attainable,
+        main = "Cluster1-Staple",
+        names = c("Rice","Wheat","Maize", "Sorghum"))
+
+boxplot(filtered_df2$rice_attainable,
+        filtered_df2$wheat_attainable,
+        filtered_df2$maize_attainable,
+        main = "Cluster2-Staple")
+
+
+boxplot(filtered_df3$rice_attainable,
+        filtered_df3$wheat_attainable,
+        filtered_df3$maize_attainable,
+        main = "Cluster3-Staple")
+
+Groundnut<-ggplot(world_crop_yeilds_latlong, aes(as.factor(kmeans3clustersStaple),groundnut_attainable))+
+  geom_boxplot()
+
+Palmoil<-ggplot(world_crop_yeilds_latlong, aes(as.factor(kmeans3clustersStaple),oilpalm_attainable))+
+  geom_boxplot()
+
+Rapeseed<-ggplot(world_crop_yeilds_latlong, aes(as.factor(kmeans3clustersStaple),rapeseed_attainable))+
+  geom_boxplot()
+
+
+
+(Groundnut+Palmoil)/(Rapeseed+Rapeseed)
+
+
+
+plot1
+
+
+
+#Cross check the validity of the new algorith
+
+library(factoextra)
+library(cluster)
+
+#Select iris dataframe
+
+#df<-iris[,1:4]
+#df_scaled<-scale(df)
+
+kmeansElbow_inbuilt<-fviz_nbclust(df_scaled, kmeans, method = "wss")
+kmeansElbow_Lab3<-wcss_kmeans(df_scaled)
+kmeansElbow_inbuilt/kmeansElbow_Lab3
+
+km_iris_inbuilt <- kmeans(df_scaled, centers = 3, nstart = 25)
+kmeans_df<-kmeans_definedclusters(df_scaled,3)
+
+iris$inbuiltKmeans3clusters<- km_iris_inbuilt$cluster
+iris$kmeans3clusters_lab3<-kmeans_df
+
+plot1<-ggplot(iris) +
+  geom_point(aes(x=Sepal.Length, y=Sepal.Width, color = as.factor(inbuiltKmeans3clusters),shape=Species))+
+  guides(color = guide_legend(title = "Kclusters_inbuilt"))+
+  scale_colour_manual(values = c("red", "blue", "green"))
+
+plot2<-ggplot(iris) +
+  geom_point(aes(x=Sepal.Length, y=Sepal.Width, color = kmeans3clusters_lab3, shape=Species))+
+  guides(color = guide_legend(title = "Kclusters_Lab3"))+
+  scale_colour_manual(values = c("red", "blue", "green"))
+
+plot3<- ggplot(iris) +
+  geom_point(aes(x=Petal.Length, y=Petal.Width, color = as.factor(inbuiltKmeans3clusters), shape=Species))+
+  guides(color = guide_legend(title = "Kclusters_inbuilt"))+
+  scale_colour_manual(values = c("red", "blue", "green"))
+
+plot4<- ggplot(iris) +
+  geom_point(aes(x=Petal.Length, y=Petal.Width, color = kmeans3clusters_lab3, shape=Species))+
+  guides(color = guide_legend(title = "Kclusters_Lab3"))+
+  scale_colour_manual(values = c("red", "blue", "green"))
+
+(plot1+ plot3 ) /(plot2 + plot4) + plot_annotation(tag_levels = 'A')
+
+#----------Convert it to sf object and then to shape file
+plot_locations_map_world <- st_as_sf(map.world, coords = c("lat", "long"))
+st_write(plot_locations_map_world,
+         "plot_locations_map_world.shp", driver = "ESRI Shapefile",append=FALSE)
+library("sp")
+library("rgdal")
+
+data(meuse)
+coordinates(meuse) <- c("x", "y")
+proj4string(meuse) <- CRS("+init=epsg:28992")
+meuse_ll <- spTransform(meuse, CRS("+proj=longlat +datum=WGS84"))
+writeOGR(meuse_ll["zinc"], "meuse.kml", layer="zinc", driver="KML") 
